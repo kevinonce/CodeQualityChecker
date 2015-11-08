@@ -15,6 +15,7 @@ import spoon.reflect.declaration.CtExecutable;
 public class DuplicatedBlockProcessor extends AbstractProcessor<CtBlock<?>> {
 
 	Map<Integer, List<CtBlock<?>>> blockHash = new HashMap<>();
+	private static final int NBR_STATEMENT_MIN = 10;
 	
 	@Override
 	public void process(CtBlock<?> arg0) {
@@ -35,7 +36,7 @@ public class DuplicatedBlockProcessor extends AbstractProcessor<CtBlock<?>> {
 
 		 for(Integer key : keys){
 			 List<CtBlock<?>> liste = blockHash.get(key);
-			 if(liste.size() > 1){
+			 if(liste.size() > 1 && liste.get(0).getStatements().size() > NBR_STATEMENT_MIN){
 				 System.out.println("Dupliction block found in: ");
 				 for(CtStatement statement : liste){
 					 System.out.print("\t");
