@@ -31,8 +31,10 @@ public class DuplicatedBlockProcessor extends AbstractProcessor<CtBlock<?>> {
 	
 	 @Override
 	 public void processingDone() {
+		 System.out.println();
+		 System.out.println("=========== Block duplication checker ===========");
+		 
 		 Set<Integer> keys = blockHash.keySet();
-		 System.out.println("\n-------Block duplication-------\n");
 
 		 for(Integer key : keys){
 			 List<CtBlock<?>> liste = blockHash.get(key);
@@ -49,5 +51,6 @@ public class DuplicatedBlockProcessor extends AbstractProcessor<CtBlock<?>> {
 				 System.out.println();
 			 }
 		 }
+		 System.out.println();
 	 }
 }

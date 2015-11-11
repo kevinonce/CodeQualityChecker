@@ -16,10 +16,9 @@ import spoon.reflect.code.CtIf;
 import spoon.reflect.code.CtLoop;
 import spoon.reflect.code.CtReturn;
 import spoon.reflect.code.CtThrow;
+import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtElement;
-import spoon.reflect.declaration.CtExecutable;
 import spoon.reflect.declaration.CtMethod;
-import spoon.reflect.visitor.Filter;
 import spoon.reflect.visitor.Query;
 import spoon.reflect.visitor.filter.CompositeFilter;
 import spoon.reflect.visitor.filter.FilteringOperator;
@@ -27,7 +26,8 @@ import spoon.reflect.visitor.filter.TypeFilter;
 
 public class ComplexMethodProcessor extends AbstractProcessor<CtMethod<?>> {
 	
-	Map<CtMethod<?>, Integer> methodMap = new HashMap<>();
+	Map<CtClass<?>, Map<CtMethod<?>, Integer>> methodMapByClass = new HashMap<>();
+	
 	private static final Integer COMPLEXITY_MAX = 10;
 
 	/**
@@ -44,19 +44,33 @@ public class ComplexMethodProcessor extends AbstractProcessor<CtMethod<?>> {
 				new TypeFilter<CtCase<?>>(CtCase.class), new TypeFilter<CtCatch>(CtCatch.class), new TypeFilter<CtThrow>(CtThrow.class),new TypeFilter<CtConditional<?>>(CtConditional.class),new BinaryOperateurComplexityFilter(), new ReturnComplexityFilter()));
 		
 		complexity += liste.size();
-		
-		methodMap.put(arg0, complexity);
+	 	if(complexity > COMPLEXITY_MAX){
+	 		CtClass<?> classe = arg0.getParent(CtClass.class);
+	 		Map<CtMethod<?>, Integer> methodMap = methodMapByClass.get(classe);
+	 		if( methodMap == null){
+	 			methodMap = new HashMap<>();
+	 			methodMapByClass.put(classe, methodMap);
+	 		}
+	 		methodMap.put(arg0, complexity);
+	 	}
 	}
 	
 	 @Override
 	 public void processingDone() {
-		 
-		 for(CtMethod<?> method : methodMap.keySet()){
-			 	Integer complexity = methodMap.get(method);
-			 	if(complexity > COMPLEXITY_MAX){
-			 		System.out.println(method.getSignature()+" in "+method.getPosition() + " complexity of "+complexity+" is too high !");
-			 	}
+		 System.out.println();
+		 System.out.println("=========== Complexity method checker ===========");
+		 System.out.println();
+		 for(CtClass<?> classe : methodMapByClass.keySet()){
+			 Map<CtMethod<?>, Integer> methodMap = methodMapByClass.get(classe);
+			 System.out.println("Classe => "+classe.getPackage() + classe.getQualifiedName());
+			 for(CtMethod<?> method : methodMap.keySet()){
+				 	Integer complexity = methodMap.get(method);
+				 	System.out.println(method.getSignature()+" in "+method.getPosition() + " complexity of "+complexity+" is too high !");
+			 }
+			 System.out.println();
 		 }
+		 
+		 System.out.println();
 		 
 	 }
 
