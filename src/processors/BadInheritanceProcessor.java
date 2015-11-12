@@ -22,7 +22,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 	private Set<CtTypeReference<?>> itf = new HashSet<CtTypeReference<?>>();
 	private List<CtInvocation<?>> invocations = new LinkedList<CtInvocation<?>>();
 	private Map<String, CtTypeReference<?>> methods = new HashMap<String, CtTypeReference<?>>();
-	//Map<CtTypeReference<?>, List<String>> methods;
+	Map<CtTypeReference<?>, List<String>> methodsByClass = new HashMap<CtTypeReference<?>, List<String>>();
 	
 	
 
@@ -47,19 +47,27 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			if(c.getType().getSuperInterfaces() != null)
 				itf.addAll(c.getType().getSuperInterfaces());
 			
-			System.out.println(itf);
+//			System.out.println(itf);
+			List<String> listMethods;
+
 			for(CtTypeReference<?> type : itf){
 				//System.out.println("itf : " + type.getSimpleName());
 				//System.out.println("itf : " + type);
+				listMethods = new LinkedList<String>();
+
 				for(CtExecutableReference<?> e : type.getDeclaredExecutables()){
 					if(!e.isConstructor()){
 						String method = e.getSimpleName();
 						for(CtTypeReference<?> r : e.getParameters())
 							method += ":" + r.getSimpleName();
 						methods.put(method, type);
+						listMethods.add(method);
 //						System.out.println(method + ":" +  type);
 					}
 				}
+				System.out.println(type + " : " + listMethods);
+				methodsByClass.put(type, listMethods);
+
 			}
 			
 			//System.out.println(c);
