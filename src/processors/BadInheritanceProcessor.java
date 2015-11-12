@@ -22,6 +22,9 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 	private Set<CtTypeReference<?>> itf = new HashSet<CtTypeReference<?>>();
 	private List<CtInvocation<?>> invocations = new LinkedList<CtInvocation<?>>();
 	private Map<String, CtTypeReference<?>> methods = new HashMap<String, CtTypeReference<?>>();
+	//Map<CtTypeReference<?>, List<String>> methods;
+	
+	
 
 	
 	@Override
@@ -29,7 +32,6 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 		//elementList = ctClass.getElements(new FilterImpl());
 		variables.addAll(Query.getElements(ctClass, new TypeFilter<CtVariable<?>>(CtVariable.class)));
 		invocations.addAll(Query.getElements(ctClass, new TypeFilter<CtInvocation<?>>(CtInvocation.class)));
-
 	}
 	
 	@Override
@@ -45,6 +47,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			if(c.getType().getSuperInterfaces() != null)
 				itf.addAll(c.getType().getSuperInterfaces());
 			
+			System.out.println(itf);
 			for(CtTypeReference<?> type : itf){
 				//System.out.println("itf : " + type.getSimpleName());
 				//System.out.println("itf : " + type);
@@ -61,7 +64,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			
 			//System.out.println(c);
 		}
-		
+		System.out.println(methods);
 		for(CtInvocation<?> c : invocations){
 			for(String m : methods.keySet()){
 				if(m != null && c.getExecutable().getActualMethod() != null){
@@ -79,9 +82,8 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 //						System.out.println(m + " <=> " + c.getExecutable().getActualMethod());
 //						System.out.println(c.getPosition());
 						if(!c.getExecutable().getDeclaringType().getQualifiedName().equals(methods.get(m)))
-							System.out.println("Variable declaration type mistake : " + c.getPosition() + "\nused " + c.getExecutable().getDeclaringType().getQualifiedName() + "\ninstead of : " + methods.get(m));
-							System.out.println(c.getPosition());
-							System.out.println(c.getExecutable());
+							System.out.println("---------------------\nVariable declaration type mistake : " + c.getPosition() + "\nused " + c.getExecutable().getDeclaringType().getQualifiedName() + "\ninstead of : " + methods.get(m));
+//							System.out.println(c.getExecutable().getActualMethod());
 
 					}
 				}
