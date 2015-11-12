@@ -1,9 +1,8 @@
 package processors;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,17 +18,17 @@ import spoon.reflect.visitor.filter.TypeFilter;
 
 public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 
-	private List<CtVariable<?>> variables;
-	private Set<CtTypeReference<?>> itf; 
-	private List<CtInvocation<?>> invocations;
-	private Map<Method, CtTypeReference<?>> methods;
+	private List<CtVariable<?>> variables = new LinkedList<CtVariable<?>>();
+	private Set<CtTypeReference<?>> itf = new HashSet<CtTypeReference<?>>();
+	private List<CtInvocation<?>> invocations = new LinkedList<CtInvocation<?>>();
+	private Map<String, CtTypeReference<?>> methods = new HashMap<String, CtTypeReference<?>>();
+
 	
 	@Override
 	public void process(CtClass<?> ctClass) {
 		//elementList = ctClass.getElements(new FilterImpl());
-		variables = Query.getElements(ctClass, new TypeFilter<CtVariable<?>>(CtVariable.class));
-		methods = new HashMap<Method, CtTypeReference<?>>();
-		invocations = Query.getElements(ctClass, new TypeFilter<CtInvocation<?>>(CtInvocation.class));
+		variables.addAll(Query.getElements(ctClass, new TypeFilter<CtVariable<?>>(CtVariable.class)));
+		invocations.addAll(Query.getElements(ctClass, new TypeFilter<CtInvocation<?>>(CtInvocation.class)));
 
 	}
 	
@@ -40,15 +39,22 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			//System.out.println("v : " + c.getSignature());
 			itf = new HashSet<CtTypeReference<?>>();
 			
-			itf = c.getType().getSuperInterfaces();
-			itf.add(c.getType().getSuperclass());
+			if(c.getType().getSuperclass() != null)
+				itf.add(c.getType().getSuperclass());
+			
+			if(c.getType().getSuperInterfaces() != null)
+				itf.addAll(c.getType().getSuperInterfaces());
+			
 			for(CtTypeReference<?> type : itf){
 				//System.out.println("itf : " + type.getSimpleName());
 				//System.out.println("itf : " + type);
 				for(CtExecutableReference<?> e : type.getDeclaredExecutables()){
-					if(e.getActualMethod() != null){
-						methods.put(e.getActualMethod(), type);
-						//System.out.println(e.getActualMethod() + ":" +  type);
+					if(!e.isConstructor()){
+						String method = e.getSimpleName();
+						for(CtTypeReference<?> r : e.getParameters())
+							method += ":" + r.getSimpleName();
+						methods.put(method, type);
+//						System.out.println(method + ":" +  type);
 					}
 				}
 			}
@@ -57,14 +63,27 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 		}
 		
 		for(CtInvocation<?> c : invocations){
-			for(Method m : methods.keySet()){
+			for(String m : methods.keySet()){
 				if(m != null && c.getExecutable().getActualMethod() != null){
 //				if(m.toString().split(".")[3].equals(c.getExecutable().getActualMethod().toString().split(".")[3]))
-					System.out.print(m.getName());
-						for(Parameter p : m.getParameters()){
-							System.out.print(p.getType().getSimpleName() + ",");
-						}
-					System.out.println(")"  + " <=> " + c.getExecutable().getActualMethod().getName());
+//					System.out.print(m);
+//					System.out.print(" <=> ");
+					String invMethod = c.getExecutable().getSimpleName();
+					for(CtTypeReference<?> r : c.getExecutable().getParameters()){
+//							System.out.println(r.getSimpleName());
+							invMethod += ":" + r.getActualClass().getSimpleName();
+					}
+//					System.out.print(invMethod+"\n");
+					if(m.equals(invMethod)){
+//						System.out.println("Match !");
+//						System.out.println(m + " <=> " + c.getExecutable().getActualMethod());
+//						System.out.println(c.getPosition());
+						if(!c.getExecutable().getDeclaringType().getQualifiedName().equals(methods.get(m)))
+							System.out.println("Variable declaration type mistake : " + c.getPosition() + "\nused " + c.getExecutable().getDeclaringType().getQualifiedName() + "\ninstead of : " + methods.get(m));
+							System.out.println(c.getPosition());
+							System.out.println(c.getExecutable());
+
+					}
 				}
 			}
 			//System.out.println(c.getExecutable().getActualMethod());
