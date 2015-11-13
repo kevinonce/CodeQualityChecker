@@ -13,6 +13,7 @@ import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtVariable;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
+import spoon.reflect.visitor.Filter;
 import spoon.reflect.visitor.Query;
 import spoon.reflect.visitor.filter.TypeFilter;
 
@@ -38,11 +39,11 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 	 public void processingDone() {
 
 		for(CtVariable<?> c : variables){
-			//System.out.println("v : " + c.getSignature());
+			System.out.println("v : " + c.getSignature());
 			itf = new HashSet<CtTypeReference<?>>();
 			
-			if(c.getType().getSuperclass() != null)
-				itf.add(c.getType().getSuperclass());
+//			if(c.getType().getSuperclass() != null)
+//				itf.add(c.getType().getSuperclass());
 			
 			if(c.getType().getSuperInterfaces() != null)
 				itf.addAll(c.getType().getSuperInterfaces());
@@ -72,7 +73,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			
 			//System.out.println(c);
 		}
-		System.out.println(methods);
+		/*System.out.println(methods);
 		for(CtInvocation<?> c : invocations){
 			for(String m : methods.keySet()){
 				if(m != null && c.getExecutable().getActualMethod() != null){
@@ -101,6 +102,16 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 			//System.out.println(c.getTarget());
 		}
 		
-		
+		*/
 	 }
+}
+
+class InvocationsByVariableFilter implements Filter<CtInvocation<?>> {
+
+	@Override
+	public boolean matches(CtInvocation<?> c) {
+//		c.get
+		return false;
+	}
+
 }
