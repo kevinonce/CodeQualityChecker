@@ -10,6 +10,7 @@ import java.util.Set;
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.CtInvocation;
 import spoon.reflect.declaration.CtClass;
+import spoon.reflect.declaration.CtTypeInformation;
 import spoon.reflect.declaration.CtVariable;
 import spoon.reflect.reference.CtExecutableReference;
 import spoon.reflect.reference.CtTypeReference;
@@ -20,97 +21,70 @@ import spoon.reflect.visitor.filter.TypeFilter;
 public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>>{
 
 	private List<CtVariable<?>> variables = new LinkedList<CtVariable<?>>();
-	private Set<CtTypeReference<?>> itf = new HashSet<CtTypeReference<?>>();
-	private List<CtInvocation<?>> invocations = new LinkedList<CtInvocation<?>>();
-	private Map<String, CtTypeReference<?>> methods = new HashMap<String, CtTypeReference<?>>();
-	Map<CtTypeReference<?>, List<String>> methodsByClass = new HashMap<CtTypeReference<?>, List<String>>();
-	
+	private List<CtInvocation<?>> invocations;
 	
 
 	
 	@Override
 	public void process(CtClass<?> ctClass) {
-		//elementList = ctClass.getElements(new FilterImpl());
 		variables.addAll(Query.getElements(ctClass, new TypeFilter<CtVariable<?>>(CtVariable.class)));
-		invocations.addAll(Query.getElements(ctClass, new TypeFilter<CtInvocation<?>>(CtInvocation.class)));
 	}
 	
 	@Override
 	 public void processingDone() {
 
 		for(CtVariable<?> c : variables){
-			System.out.println("v : " + c.getSignature());
-			itf = new HashSet<CtTypeReference<?>>();
-			
-//			if(c.getType().getSuperclass() != null)
-//				itf.add(c.getType().getSuperclass());
-			
-			if(c.getType().getSuperInterfaces() != null)
-				itf.addAll(c.getType().getSuperInterfaces());
-			
-//			System.out.println(itf);
-			List<String> listMethods;
-
-			for(CtTypeReference<?> type : itf){
-				//System.out.println("itf : " + type.getSimpleName());
-				//System.out.println("itf : " + type);
-				listMethods = new LinkedList<String>();
-
-				for(CtExecutableReference<?> e : type.getDeclaredExecutables()){
-					if(!e.isConstructor()){
-						String method = e.getSimpleName();
-						for(CtTypeReference<?> r : e.getParameters())
-							method += ":" + r.getSimpleName();
-						methods.put(method, type);
-						listMethods.add(method);
-//						System.out.println(method + ":" +  type);
-					}
-				}
-				System.out.println(type + " : " + listMethods);
-				methodsByClass.put(type, listMethods);
-
-			}
-			
-			//System.out.println(c);
-		}
-		/*System.out.println(methods);
-		for(CtInvocation<?> c : invocations){
-			for(String m : methods.keySet()){
-				if(m != null && c.getExecutable().getActualMethod() != null){
-//				if(m.toString().split(".")[3].equals(c.getExecutable().getActualMethod().toString().split(".")[3]))
-//					System.out.print(m);
-//					System.out.print(" <=> ");
-					String invMethod = c.getExecutable().getSimpleName();
-					for(CtTypeReference<?> r : c.getExecutable().getParameters()){
-//							System.out.println(r.getSimpleName());
-							invMethod += ":" + r.getActualClass().getSimpleName();
-					}
-//					System.out.print(invMethod+"\n");
-					if(m.equals(invMethod)){
-//						System.out.println("Match !");
-//						System.out.println(m + " <=> " + c.getExecutable().getActualMethod());
-//						System.out.println(c.getPosition());
-						if(!c.getExecutable().getDeclaringType().getQualifiedName().equals(methods.get(m)))
-							System.out.println("---------------------\nVariable declaration type mistake : " + c.getPosition() + "\nused " + c.getExecutable().getDeclaringType().getQualifiedName() + "\ninstead of : " + methods.get(m));
-//							System.out.println(c.getExecutable().getActualMethod());
-
-					}
+			invocations = c.getParent(CtClass.class).getElements(new InvocationsByVariableFilter(c));
+			int cpt = 0;
+				//appel de fonction sur une variable
+				for(CtInvocation<?> i : invocations){
+//					System.out.println("Invocation : " + i + " : " + i.getTarget().getType().getSuperInterfaces());
+					
+					// pour chaque super-interface des classes de la variable
+					for(CtTypeReference<?> r : i.getTarget().getType().getSuperInterfaces()){
+						System.out.println("-----Classe : " + r.getSimpleName());
+						
+						//pour chaque méthode de la super-interface
+						for(CtExecutableReference<?> e : r.getDeclaredExecutables()){
+//							System.out.println(i.getExecutable().toString().replace("E", "java.lang.Object").split("#")[1] 
+//									+ " ----------------- " + e.toString().split("#")[1]);
+//							System.out.println(i.getExecutable().getDeclaringType().getQualifiedName() + " ++++++++++ " + e.getDeclaringType());
+							if(i.getExecutable().toString().replace("E", "java.lang.Object").split("#")[1].equals(e.toString().split("#")[1]) 
+									&& !i.getExecutable().getDeclaringType().getQualifiedName().equals(e.getDeclaringType())){
+								System.out.println(i + "\n" + i.getExecutable().toString().replace("E", "java.lang.Object").split("#")[1] + " <=> " + e.toString().split("#")[1]);
+								cpt++;
+								System.out.println(r.getQualifiedName());
+//							System.out.println(i.getExecutable().toString().replace("E", "java.lang.Object") + " ========== " + e);
+//							System.out.println(e.getSimpleName() + " " + e.getParameters());
+//							System.out.println("invocation : " + i.getExecutable().toString().replace("E", "java.lang.Object").split("#")[1]);
+							} 
+						}
+//						System.out.println(r.getSimpleName());
+						
+//						System.out.println("invocation : " + i.getExecutable().toString().replace("E", "java.lang.Object").split("#")[1]);
 				}
 			}
-			//System.out.println(c.getExecutable().getActualMethod());
-			//System.out.println(c.getExecutable().getSimpleName());
-			//System.out.println(c.getTarget());
+			if(cpt == invocations.size())
+				System.out.println("OK");
+//			System.out.println(c.getSimpleName() + " : " + c.getType().getQualifiedName() + " <=> "+ c.getParent(CtClass.class).getElements(new InvocationsByVariableFilter(c)));
+			
 		}
-		
-		*/
-	 }
+		 }
 }
 
 class InvocationsByVariableFilter implements Filter<CtInvocation<?>> {
+	
+	private CtVariable<?> variable;
+	
+	public InvocationsByVariableFilter(CtVariable<?> v) {
+		this.variable = v;
+	}
 
-	@Override
-	public boolean matches(CtInvocation<?> c) {
-//		c.get
+	public boolean matches(CtInvocation<?> inv) {
+		if(inv.getTarget() != null 
+				&& this.variable != null 
+				&& this.variable.getType().getSimpleName().equals(inv.getTarget().getType().getSimpleName()))
+			return true;
 		return false;
 	}
 
