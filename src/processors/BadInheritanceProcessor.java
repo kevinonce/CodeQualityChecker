@@ -38,7 +38,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 			if(!c.getType().isPrimitive()){
 			possibleCorrections = new LinkedList<String>();
 			supItf = new HashSet<CtTypeReference<?>>();
-			System.out.println("\nVariable : " + c + "\nSource : " + c.getPosition());
+//			System.out.println("\nVariable : " + c + " " + c.getPosition());
 			invocations = c.getParent(CtClass.class).getElements(
 					new InvocationsByVariableFilter(c));
 			List<String> listInv = new LinkedList<String>();
@@ -52,8 +52,11 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 			boolean allIn = true;
 			Set<CtTypeReference<?>> tmpItf = new HashSet<CtTypeReference<?>>();
 			tmpItf.addAll(supItf);
-			while(allIn){
+//			System.out.println(supItf);
+			while(allIn && !supItf.isEmpty()){
+//				System.out.println("OK");
 				for(CtTypeReference<?> r : tmpItf){
+//					System.out.println(r);
 					if(!r.getSuperInterfaces().isEmpty() && !supItf.containsAll(r.getSuperInterfaces())){
 						supItf.addAll(r.getSuperInterfaces());
 //						supItf.add(r.getSuperclass());
@@ -102,10 +105,10 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 				// }
 			}
 			if(!possibleCorrections.isEmpty()){
-				 System.out.println("----------FOUND---------------");
+				 System.out.println("---------------TROUVÉ---------------");
 				 System.out.println("Source : " + c.getPosition());
 				 System.out.println("Variable : " + c.getSignature());
-				 System.out.print("Possible variable type corrections : \n");
+				 System.out.print("Correction(s) possible(s) : \n");
 				 for(String s : possibleCorrections)
 					 System.out.println("	- " + s);
 			}
@@ -113,7 +116,7 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 
 		}
 		}
-		System.out.println("Done !");
+		System.out.println("====================\nAnalyse terminée !");
 
 	}
 }
