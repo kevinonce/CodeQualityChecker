@@ -35,9 +35,10 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 	@Override
 	public void processingDone() {
 		for (CtVariable<?> c : variables) {
+			if(!c.getType().isPrimitive()){
 			possibleCorrections = new LinkedList<String>();
 			supItf = new HashSet<CtTypeReference<?>>();
-//			System.out.println("\nVariable : " + c + "\n");
+			System.out.println("\nVariable : " + c + "\nSource : " + c.getPosition());
 			invocations = c.getParent(CtClass.class).getElements(
 					new InvocationsByVariableFilter(c));
 			List<String> listInv = new LinkedList<String>();
@@ -111,6 +112,9 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 //			System.out.println("result = " + result);
 
 		}
+		}
+		System.out.println("Done !");
+
 	}
 }
 
