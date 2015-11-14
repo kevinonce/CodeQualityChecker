@@ -16,6 +16,7 @@ import spoon.reflect.reference.CtTypeReference;
 import spoon.reflect.visitor.Filter;
 import spoon.reflect.visitor.Query;
 import spoon.reflect.visitor.filter.TypeFilter;
+import spoon.support.reflect.reference.SpoonClassNotFoundException;
 
 public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 
@@ -30,12 +31,16 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 	public void process(CtClass<?> ctClass) {
 		variables.addAll(Query.getElements(ctClass,
 				new TypeFilter<CtVariable<?>>(CtVariable.class)));
+//		System.out.println("ok");
 	}
 
 	@Override
 	public void processingDone() {
+		int cpt = 0;
+//		System.out.println("ok");
 		for (CtVariable<?> c : variables) {
-			if(!c.getType().isPrimitive()){
+//			System.out.println("DEBUG : " + c + " " + c.getType());
+			if(c.getType() != null && !c.getType().isPrimitive()){
 			possibleCorrections = new LinkedList<String>();
 			supItf = new HashSet<CtTypeReference<?>>();
 //			System.out.println("\nVariable : " + c + " " + c.getPosition());
@@ -47,76 +52,83 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 						.replace("E", "java.lang.Object").split("#")[1]);
 			}
 			map.put(c.getType().getQualifiedName(), listInv);
-			
-			supItf.addAll(c.getType().getSuperInterfaces());
-			boolean allIn = true;
-			Set<CtTypeReference<?>> tmpItf = new HashSet<CtTypeReference<?>>();
-			tmpItf.addAll(supItf);
-//			System.out.println(supItf);
-			while(allIn && !supItf.isEmpty()){
-//				System.out.println("OK");
-				for(CtTypeReference<?> r : tmpItf){
-//					System.out.println(r);
-					if(!r.getSuperInterfaces().isEmpty() && !supItf.containsAll(r.getSuperInterfaces())){
-						supItf.addAll(r.getSuperInterfaces());
-//						supItf.add(r.getSuperclass());
-//						System.out.println("itf : " + r + " => super-interfaces : "  + r.getSuperInterfaces());
-//						System.out.println("super classes : " + r.getSuperclass());
-						allIn = true;
-					} else
-						allIn = false;
-				}
+//			System.out.println(c.getType());
+//			System.out.println(c.getType().getSuperInterfaces().size());
+			try {
+				supItf.addAll(c.getType().getSuperInterfaces());
+				boolean allIn = true;
+				Set<CtTypeReference<?>> tmpItf = new HashSet<CtTypeReference<?>>();
 				tmpItf.addAll(supItf);
-			}	
-//			System.out.println("variable : " + c);
-//			System.out.println("supITf : " + supItf);
-//			System.out.println(c.getType().getSuperInterfaces());
-			for (CtTypeReference<?> r : supItf) {
-				List<String> listItf = new LinkedList<String>();
-				// System.out.println(r + "\n" +r.);
-				for (CtExecutableReference<?> e : r.getDeclaredExecutables()) {
-					listItf.add(e.toString().split("#")[1]);
+	//			System.out.println(supItf);
+				while(allIn && !supItf.isEmpty()){
+	//				System.out.println("OK");
+					for(CtTypeReference<?> r : tmpItf){
+	//					System.out.println(r);
+						if(!r.getSuperInterfaces().isEmpty() && !supItf.containsAll(r.getSuperInterfaces())){
+							supItf.addAll(r.getSuperInterfaces());
+	//						supItf.add(r.getSuperclass());
+	//						System.out.println("itf : " + r + " => super-interfaces : "  + r.getSuperInterfaces());
+	//						System.out.println("super classes : " + r.getSuperclass());
+							allIn = true;
+						} else
+							allIn = false;
+					}
+					tmpItf.addAll(supItf);
+				}	
+	//			System.out.println("variable : " + c);
+	//			System.out.println("supITf : " + supItf);
+	//			System.out.println(c.getType().getSuperInterfaces());
+				for (CtTypeReference<?> r : supItf) {
+					List<String> listItf = new LinkedList<String>();
+					// System.out.println(r + "\n" +r.);
+					for (CtExecutableReference<?> e : r.getDeclaredExecutables()) {
+						listItf.add(e.toString().split("#")[1]);
+					}
+					mapItf.put(r.getQualifiedName(), listItf);
 				}
-				mapItf.put(r.getQualifiedName(), listItf);
-			}
-
-			// System.out.println(map);
-			// System.out.println(mapItf);
-			// for (String s : map.keySet()) {
-//			 System.out.println("----------FOUND---------------");
-//			 System.out.println("Source : " + c.getPosition());
-//			 System.out.println("Variable : " + c.getSignature());
-			for (String str : mapItf.keySet()) {
-				// System.out.println(str);
-//				 if(c.getType().getQualifiedName().equals(s) &&
-//				 !map.get(s).isEmpty() &&
-//				 mapItf.get(str).containsAll(map.get(s))){
-				if (!listInv.isEmpty() && mapItf.get(str).containsAll(listInv)) {
-//					if(result != "" && c.getType().getSuperInterfaces().contains(typeResult)) {
-//						result = "----------FOUND---------------\nSource : "
-//							+ c.getPosition() + "\nCorrection : "
-//							+ c.getType().getQualifiedName() + " --> " + str;
-//						typeResult = c.getType();
-//					}
-					possibleCorrections.add(str);
-//					 System.out.println("Correction : " +
-//					 c.getType().getQualifiedName() + " --> " + str);
+	
+				// System.out.println(map);
+				// System.out.println(mapItf);
+				// for (String s : map.keySet()) {
+	//			 System.out.println("----------FOUND---------------");
+	//			 System.out.println("Source : " + c.getPosition());
+	//			 System.out.println("Variable : " + c.getSignature());
+				for (String str : mapItf.keySet()) {
+					// System.out.println(str);
+	//				 if(c.getType().getQualifiedName().equals(s) &&
+	//				 !map.get(s).isEmpty() &&
+	//				 mapItf.get(str).containsAll(map.get(s))){
+					if (!listInv.isEmpty() && mapItf.get(str).containsAll(listInv) && !c.getType().getQualifiedName().equals(str)) {
+	//					if(result != "" && c.getType().getSuperInterfaces().contains(typeResult)) {
+	//						result = "----------FOUND---------------\nSource : "
+	//							+ c.getPosition() + "\nCorrection : "
+	//							+ c.getType().getQualifiedName() + " --> " + str;
+	//						typeResult = c.getType();
+	//					}
+						possibleCorrections.add(str);
+	//					 System.out.println("Correction : " +
+	//					 c.getType().getQualifiedName() + " --> " + str);
+					}
+					// }
 				}
-				// }
+				if(!possibleCorrections.isEmpty()){
+					cpt++;
+					 System.out.println("---------------TROUVÉ---------------");
+	//				 System.out.println("DEBUG : " + c.getType().getQualifiedName());
+					 System.out.println("Source : " + c.getPosition());
+					 System.out.println("Variable : " + c);
+					 System.out.print("Correction(s) possible(s) : \n");
+					 for(String s : possibleCorrections)
+						 System.out.println("	- " + s);
+				}
+	//			System.out.println("result = " + result);
+			} catch(SpoonClassNotFoundException e){
+				System.out.println("Cannot load class " + e);
 			}
-			if(!possibleCorrections.isEmpty()){
-				 System.out.println("---------------TROUVÉ---------------");
-				 System.out.println("Source : " + c.getPosition());
-				 System.out.println("Variable : " + c.getSignature());
-				 System.out.print("Correction(s) possible(s) : \n");
-				 for(String s : possibleCorrections)
-					 System.out.println("	- " + s);
-			}
-//			System.out.println("result = " + result);
-
 		}
 		}
 		System.out.println("====================\nAnalyse terminée !");
+		System.out.println(cpt + " corrections possibles identifiées !");
 
 	}
 }
