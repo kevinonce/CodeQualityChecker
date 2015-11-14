@@ -1,11 +1,11 @@
 package processors;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
+import java.util.Set;
 
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.CtInvocation;
@@ -21,8 +21,10 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 
 	private List<CtVariable<?>> variables = new LinkedList<CtVariable<?>>();
 	private List<CtInvocation<?>> invocations;
+	private Set<CtTypeReference<?>> supItf = new HashSet<CtTypeReference<?>>();
 	private Map<String, List<String>> map = new HashMap<String, List<String>>();
 	private Map<String, List<String>> mapItf = new HashMap<String, List<String>>();
+	private List<String> possibleCorrections;
 
 	@Override
 	public void process(CtClass<?> ctClass) {
@@ -33,6 +35,9 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 	@Override
 	public void processingDone() {
 		for (CtVariable<?> c : variables) {
+			possibleCorrections = new LinkedList<String>();
+			supItf = new HashSet<CtTypeReference<?>>();
+//			System.out.println("\nVariable : " + c + "\n");
 			invocations = c.getParent(CtClass.class).getElements(
 					new InvocationsByVariableFilter(c));
 			List<String> listInv = new LinkedList<String>();
@@ -41,29 +46,70 @@ public class BadInheritanceProcessor extends AbstractProcessor<CtClass<?>> {
 						.replace("E", "java.lang.Object").split("#")[1]);
 			}
 			map.put(c.getType().getQualifiedName(), listInv);
-			for (CtTypeReference<?> r : c.getType().getSuperInterfaces()) {
+			
+			supItf.addAll(c.getType().getSuperInterfaces());
+			boolean allIn = true;
+			Set<CtTypeReference<?>> tmpItf = new HashSet<CtTypeReference<?>>();
+			tmpItf.addAll(supItf);
+			while(allIn){
+				for(CtTypeReference<?> r : tmpItf){
+					if(!r.getSuperInterfaces().isEmpty() && !supItf.containsAll(r.getSuperInterfaces())){
+						supItf.addAll(r.getSuperInterfaces());
+//						supItf.add(r.getSuperclass());
+//						System.out.println("itf : " + r + " => super-interfaces : "  + r.getSuperInterfaces());
+//						System.out.println("super classes : " + r.getSuperclass());
+						allIn = true;
+					} else
+						allIn = false;
+				}
+				tmpItf.addAll(supItf);
+			}	
+//			System.out.println("variable : " + c);
+//			System.out.println("supITf : " + supItf);
+//			System.out.println(c.getType().getSuperInterfaces());
+			for (CtTypeReference<?> r : supItf) {
 				List<String> listItf = new LinkedList<String>();
-
+				// System.out.println(r + "\n" +r.);
 				for (CtExecutableReference<?> e : r.getDeclaredExecutables()) {
 					listItf.add(e.toString().split("#")[1]);
-					
 				}
 				mapItf.put(r.getQualifiedName(), listItf);
 			}
 
-//			System.out.println(map);
-//			System.out.println(mapItf);
-			
-			for (String s : map.keySet()) {
-				for (String str : mapItf.keySet()) {
-					 if(c.getType().getQualifiedName().equals(s) && !map.get(s).isEmpty() && mapItf.get(str).containsAll(map.get(s))){
-						 System.out.println("----------FOUND---------------");
-						System.out.println("Source : " + c.getPosition());
-						System.out.println("Variable : " + c.getSignature());
-						System.out.println("Correction : " + s + " --> " + str);
-					 }
+			// System.out.println(map);
+			// System.out.println(mapItf);
+			// for (String s : map.keySet()) {
+//			 System.out.println("----------FOUND---------------");
+//			 System.out.println("Source : " + c.getPosition());
+//			 System.out.println("Variable : " + c.getSignature());
+			for (String str : mapItf.keySet()) {
+				// System.out.println(str);
+//				 if(c.getType().getQualifiedName().equals(s) &&
+//				 !map.get(s).isEmpty() &&
+//				 mapItf.get(str).containsAll(map.get(s))){
+				if (!listInv.isEmpty() && mapItf.get(str).containsAll(listInv)) {
+//					if(result != "" && c.getType().getSuperInterfaces().contains(typeResult)) {
+//						result = "----------FOUND---------------\nSource : "
+//							+ c.getPosition() + "\nCorrection : "
+//							+ c.getType().getQualifiedName() + " --> " + str;
+//						typeResult = c.getType();
+//					}
+					possibleCorrections.add(str);
+//					 System.out.println("Correction : " +
+//					 c.getType().getQualifiedName() + " --> " + str);
 				}
+				// }
 			}
+			if(!possibleCorrections.isEmpty()){
+				 System.out.println("----------FOUND---------------");
+				 System.out.println("Source : " + c.getPosition());
+				 System.out.println("Variable : " + c.getSignature());
+				 System.out.print("Possible variable type corrections : \n");
+				 for(String s : possibleCorrections)
+					 System.out.println("	- " + s);
+			}
+//			System.out.println("result = " + result);
+
 		}
 	}
 }
@@ -77,11 +123,15 @@ class InvocationsByVariableFilter implements Filter<CtInvocation<?>> {
 	}
 
 	public boolean matches(CtInvocation<?> inv) {
-		if (inv.getTarget() != null
-				&& this.variable != null
-				&& this.variable.getType().getSimpleName()
-						.equals(inv.getTarget().getType().getSimpleName()))
-			return true;
+		try {
+			if (inv.getTarget() != null
+					&& this.variable != null
+					&& this.variable.getType().getSimpleName()
+							.equals(inv.getTarget().getType().getSimpleName()))
+				return true;
+		} catch (NullPointerException e) {
+			return false;
+		}
 		return false;
 	}
 
